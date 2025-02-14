@@ -1,6 +1,0 @@
-Scan results for 10.9.75.213 at February 14, 2025 at 02:52:05 PM
-Port	State	        Service
-5900		open		rfb
-5000		open		commplex-main
-88		    open		kerberos
-7000		open		afs3-fileserver
