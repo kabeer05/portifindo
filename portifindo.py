@@ -4,7 +4,8 @@ from datetime import datetime
 import argparse
 import pyfiglet
 import re
-import scapy
+from scapy.all import *
+from scapy.layers.inet import IP, TCP
 
 common_ports = {"tcp": []}
 
@@ -84,10 +85,43 @@ def detectService(target, port):
 
 
 def synScanTCP(target, ports):
-    pass
+    """Performs a TCP SYN/RST scan on the target IP address."""
+
+    global scanned_ports
+    try:
+        for port in ports:
+            syn_pkt = sr1(
+                IP(dst=target) / TCP(dport=port, flags="S"),
+                timeout=DEFAULT_TIMEOUT,
+                verbose=0,
+            )
+
+            if (syn_pkt is not None) and (syn_pkt.haslayer(TCP)):
+                if syn_pkt.getlayer(TCP).flags == 0x12:
+                    rst_pkt = sr1(
+                        IP(dst=target) / TCP(dport=port, flags="R"),
+                        timeout=DEFAULT_TIMEOUT,
+                        verbose=0,
+                    )
+                    service_name = detectService(target, port)
+                    scanned_ports[PortStatus.OPEN].append((port, service_name))
+                if syn_pkt.getlayer(TCP).flags == 0x14:
+                    scanned_ports[PortStatus.CLOSED].append(port)
+            else:
+                scanned_ports[PortStatus.CLOSED].append(port)
+        printScanResults(scanned_ports)
+
+    except KeyboardInterrupt:
+        print("\n Exiting Program!!!")
+        sys.exit(0)
+    except socket.gaierror:
+        print("\n Hostname Could Not Be Resolved!!!")
+        sys.exit(1)
 
 
 def connectScanTCP(target, ports):
+    """Performs a TCP connect scan on the target IP address."""
+
     global scanned_ports
     try:
         for port in ports:
@@ -104,10 +138,10 @@ def connectScanTCP(target, ports):
 
     except KeyboardInterrupt:
         print("\n Exiting Program!!!")
-        sys.exit()
+        sys.exit(0)
     except socket.gaierror:
         print("\n Hostname Could Not Be Resolved!!!")
-        sys.exit()
+        sys.exit(1)
 
     printScanResults(scanned_ports)
 
@@ -139,6 +173,18 @@ def validatePorts(ports):
         r"[1-5][0-9]{4}|[1-9][0-9]{0,3}))*$"
     )
     return ports is None or re.match(port_pattern, ports) is not None
+
+
+def saveScanResults(target, filename):
+    """Save the scan results to a file."""
+
+    with open(f"{filename}.txt", "w") as f:
+        f.write(
+            f"Scan results for {target} at {datetime.now().strftime('%B %d, %Y at %I:%M:%S %p')}\n"
+        )
+        f.write("Port\tState\tService\n")
+        for port, service in scanned_ports[PortStatus.OPEN]:
+            f.write(f"{port}\t\topen\t\t{service}\n")
 
 
 def parseArguments():
@@ -173,7 +219,10 @@ def parseArguments():
         "-p", "--ports", type=str, help="Port range to scan (e.g., 53 or 22,80,443)."
     )
     parser.add_argument(
-        "-o", "--output", type=str, help="Save scan results to a file (e.g., results)."
+        "-o",
+        "--output",
+        type=str,
+        help="Save scan results to a txt file (e.g., results).",
     )
     parser.add_argument(
         "-P",
@@ -214,9 +263,12 @@ def main():
     printBanner(target=target)
 
     if args.scan_stealth == True:
-        synScanTCP()
+        synScanTCP(target=target, ports=scan_ports)
     else:
         connectScanTCP(target=target, ports=scan_ports)
+
+    if args.output != None:
+        saveScanResults(target, args.output)
 
 
 if __name__ == "__main__":
