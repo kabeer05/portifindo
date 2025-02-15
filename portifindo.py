@@ -6,10 +6,12 @@ import pyfiglet
 import re
 from scapy.all import *
 from scapy.layers.inet import IP, TCP
+import threading
 
 common_ports = {"tcp": []}
 
 DEFAULT_TIMEOUT = 1
+THREAD_LOCK = threading.Lock()
 
 
 class PortStatus:
@@ -64,7 +66,7 @@ def bannerGrabbing(target, port):
         server_info = [
             line for line in banner.split("\r\n") if line.lower().startswith("server:")
         ]
-        return server_info[0].split(": ")[1] if server_info else "Unknown"
+        return server_info[0].split(": ")[1] if server_info else None
     except:
         return None
     finally:
@@ -79,8 +81,8 @@ def detectService(target, port):
     """
 
     service_name = getServiceName(port)
-    if service_name == None:
-        service_name = bannerGrabbing(target, port)
+    if service_name is None:
+        service_name = bannerGrabbing(target, port) or "Unknown"
     return service_name
 
 
@@ -104,12 +106,14 @@ def synScanTCP(target, ports):
                         verbose=0,
                     )
                     service_name = detectService(target, port)
-                    scanned_ports[PortStatus.OPEN].append((port, service_name))
+                    with THREAD_LOCK:
+                        scanned_ports[PortStatus.OPEN].append((port, service_name))
                 if syn_pkt.getlayer(TCP).flags == 0x14:
-                    scanned_ports[PortStatus.CLOSED].append(port)
+                    with THREAD_LOCK:
+                        scanned_ports[PortStatus.CLOSED].append(port)
             else:
-                scanned_ports[PortStatus.CLOSED].append(port)
-        printScanResults(scanned_ports)
+                with THREAD_LOCK:
+                    scanned_ports[PortStatus.CLOSED].append(port)
 
     except KeyboardInterrupt:
         print("\n Exiting Program!!!")
@@ -131,9 +135,11 @@ def connectScanTCP(target, ports):
             result = s.connect_ex((target, port))
             if result == 0:
                 service_name = detectService(target, port)
-                scanned_ports[PortStatus.OPEN].append((port, service_name))
+                with THREAD_LOCK:
+                    scanned_ports[PortStatus.OPEN].append((port, service_name))
             else:
-                scanned_ports[PortStatus.CLOSED].append(port)
+                with THREAD_LOCK:
+                    scanned_ports[PortStatus.CLOSED].append(port)
             s.close()
 
     except KeyboardInterrupt:
@@ -142,8 +148,6 @@ def connectScanTCP(target, ports):
     except socket.gaierror:
         print("\n Hostname Could Not Be Resolved!!!")
         sys.exit(1)
-
-    printScanResults(scanned_ports)
 
 
 def printScanResults(ports):
@@ -191,7 +195,7 @@ def parseArguments():
     """Parses command line arguments."""
 
     parser = argparse.ArgumentParser(
-        prog="Portfindo",
+        prog="Portifindo",
         description="A magical CLI tool to swiftly discover open ports on your network!",
         add_help=False,
     )
@@ -233,6 +237,13 @@ def parseArguments():
         help="Specify the protocol to scan (tcp or udp).",
     )
     parser.add_argument(
+        "-t",
+        "--threads",
+        type=int,
+        help="Number of threads for faster scanning (default: 6).",
+        default=6,
+    )
+    parser.add_argument(
         "target",
         metavar="<target>",
         type=str,
@@ -247,6 +258,7 @@ def main():
     args = parseArguments()
     target = args.target
     ports = args.ports
+    num_threads = args.threads
 
     if not validateIP(target):
         print("Invalid IP address. Please enter a valid IP address.")
@@ -262,10 +274,21 @@ def main():
 
     printBanner(target=target)
 
-    if args.scan_stealth == True:
-        synScanTCP(target=target, ports=scan_ports)
-    else:
-        connectScanTCP(target=target, ports=scan_ports)
+    scan_method = synScanTCP if args.scan_stealth else connectScanTCP
+    port_chunks = [
+        scan_ports[i : i + num_threads] for i in range(0, len(scan_ports), num_threads)
+    ]
+
+    threads = []
+    for chunk in port_chunks:
+        thread = threading.Thread(target=scan_method, args=(target, chunk))
+        thread.start()
+        threads.append(thread)
+
+    for thread in threads:
+        thread.join()
+
+    printScanResults(scanned_ports)
 
     if args.output != None:
         saveScanResults(target, args.output)
