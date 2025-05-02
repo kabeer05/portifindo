@@ -1,6 +1,6 @@
-# Portfindo: A Magical Port Scanning Tool
+# Portifindo: A Magical Port Scanning Tool
 
-Portfindo is a powerful and intuitive command-line tool designed to discover open ports on a target network. It supports stealthy port scanning and provides detailed information about the open ports, including the service name, making it a valuable tool for network security and penetration testing.
+Portifindo is a powerful and intuitive command-line tool designed to discover open ports on a target network. It supports stealthy port scanning and provides detailed information about the open ports, including the service name, making it a valuable tool for network security and penetration testing.
 
 ---
 
@@ -18,9 +18,9 @@ Portfindo is a powerful and intuitive command-line tool designed to discover ope
 
 ## Installation
 
-To get started with **Portfindo**, you'll need Python 3.x installed on your system. If you don't have Python installed, you can download it from the official website: [python.org](https://www.python.org/).
+To get started with **Portifindo**, you'll need Python 3.x installed on your system. If you don't have Python installed, you can download it from the official website: [python.org](https://www.python.org/).
 
-To install **Portfindo**, follow these steps:
+To install **Portifindo**, follow these steps:
 
 1. Clone the repository or download the project files.
 2. Navigate to the project directory.
@@ -34,16 +34,16 @@ pip install -r requirements.txt
 
 ## Usage
 
-Once installed, you can use **Portfindo** by running the following command in your terminal:
+Once installed, you can use **Portfiindo** by running the following command in your terminal:
 
 ```bash
-python portfindo.py <target>
+python portifindo.py <target>
 ```
 
 ### Arguments
 
 - `-h`, `--help`: Show the help message.
-- `-v`, `--version`: Display the version of Portfindo.
+- `-v`, `--version`: Display the version of Portifindo.
 - `-sS`, `--scan-stealth`: Enable stealth mode to reduce detection by firewalls/IDS.
 - `-p`, `--ports`: Specify the port range to scan (e.g., `53` or `22,80,443`).
 - `-o`, `--output`: Save scan results to a `.txt` file.
@@ -68,7 +68,7 @@ python portfindo.py <target>
 To scan a target IP address:
 
 ```bash
-python portfindo.py 10.9.75.213
+python portifindo.py 10.9.75.213
 ```
 
 ### Scan Specific Ports
@@ -76,7 +76,7 @@ python portfindo.py 10.9.75.213
 To scan specific ports (e.g., 22, 80, 443):
 
 ```bash
-python portfindo.py -p 22,80,443 10.9.75.213
+python portifindo.py -p 22,80,443 10.9.75.213
 ```
 
 ### Stealth Mode
@@ -84,7 +84,7 @@ python portfindo.py -p 22,80,443 10.9.75.213
 To scan in stealth mode (TCP SYN scan):
 
 ```bash
-python portfindo.py -sS 10.9.75.213
+python portifindo.py -sS 10.9.75.213
 ```
 
 ### Save Scan Results
@@ -92,7 +92,7 @@ python portfindo.py -sS 10.9.75.213
 To save the scan results to a file:
 
 ```bash
-python portfindo.py 10.9.75.213
+python portifindo.py 10.9.75.213
 ```
 
 ---
@@ -112,7 +112,7 @@ You can save the scan results to a `.txt` file by using the `-o` argument. This 
 For example:
 
 ```bash
-python portfindo.py -o results 10.9.75.213
+python portifindo.py -o results 10.9.75.213
 ```
 
 The results will be saved in a file named `results.txt`.
